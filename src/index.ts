@@ -1,7 +1,6 @@
-import { Elysia } from "elysia";
+import { app } from "./app";
 
-const app = new Elysia().get("/", () => "Hello Elysia").listen(3000);
+const port = Number(process.env.PORT ?? 3000);
+app.listen(port);
 
-console.log(
-  `🦊 Elysia is running at ${app.server?.hostname}:${app.server?.port}`
-);
+console.log(`Front Row Upgrade Queue API: http://${app.server?.hostname}:${app.server?.port}/api`);

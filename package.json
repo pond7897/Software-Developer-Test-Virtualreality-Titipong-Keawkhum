@@ -1,15 +1,19 @@
 {
   "name": "vr-test-dev-titipong",
-  "version": "1.0.50",
+  "version": "1.0.0",
+  "private": true,
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "dev": "bun run --watch src/index.ts"
+    "dev": "bun run --watch src/index.ts",
+    "start": "bun run src/index.ts",
+    "test": "bun test",
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "elysia": "latest"
+    "elysia": "^2.0.0-rc.1"
   },
   "devDependencies": {
-    "bun-types": "latest"
+    "@types/bun": "^1.4.4",
+    "typescript": "5.9"
   },
-  "module": "src/index.js"
+  "module": "src/index.ts"
 }

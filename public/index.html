@@ -1,0 +1,130 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Front Row Upgrade Queue</title>
+  <style>
+    :root {
+      --bg: #f6f7f9; --surface: #ffffff; --fg: #16181d; --muted: #5b6270; --line: #d8dce3;
+      --accent: #1f5fd6; --on-accent: #ffffff; --soft: #eef1f6;
+      --good: #0f7b4f; --good-soft: #dff3ea; --bad: #b3261e; --bad-soft: #fbe4e2;
+      --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #12141a; --surface: #1b1e26; --fg: #e8eaf0; --muted: #9ba3b4; --line: #2e3340;
+        --accent: #6ea2ff; --on-accent: #0b1220; --soft: #232733;
+        --good: #52d3a0; --good-soft: #13352a; --bad: #ff8f86; --bad-soft: #3a1d1b;
+      }
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; padding: 24px 16px 48px; background: var(--bg); color: var(--fg); font: 15px/1.55 system-ui, -apple-system, "Segoe UI", sans-serif; }
+    .wrap { max-width: 980px; margin: 0 auto; display: flex; flex-direction: column; gap: 20px; }
+    h1 { font-size: 28px; margin: 0; line-height: 1.2; }
+    h2 { font-size: 17px; margin: 0 0 10px; }
+    p { margin: 0; }
+    .muted { color: var(--muted); }
+    .mono { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+    section { background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 16px; min-width: 0; }
+    .bar { display: flex; flex-wrap: wrap; gap: 12px 24px; align-items: flex-end; }
+    .field { display: flex; flex-direction: column; gap: 4px; }
+    .lbl { font-size: 12px; color: var(--muted); font-weight: 600; }
+    .clock { font: 500 26px/1.1 var(--mono); }
+    .btns { display: flex; flex-wrap: wrap; gap: 8px; }
+    button, select { font: inherit; font-size: 14px; color: var(--fg); background: var(--soft); border: 1px solid var(--line); border-radius: 6px; padding: 8px 12px; min-height: 38px; cursor: pointer; }
+    button:hover { border-color: var(--accent); }
+    button:focus-visible, select:focus-visible, input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+    .name { font-size: 22px; font-weight: 700; }
+    .score { font: 600 15px var(--mono); background: var(--good-soft); color: var(--good); padding: 2px 8px; border-radius: 4px; display: inline-block; }
+    ul.plain { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 2px; }
+    .none { color: var(--bad); background: var(--bad-soft); padding: 10px 12px; border-radius: 6px; }
+    .error { color: var(--bad); background: var(--bad-soft); padding: 10px 12px; border-radius: 6px; }
+    .tw { overflow-x: auto; }
+    table { border-collapse: collapse; width: 100%; font-size: 13px; min-width: 560px; }
+    th { text-align: left; font-size: 12px; color: var(--muted); padding: 6px 10px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+    td { padding: 6px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+    tr:last-child td { border-bottom: 0; }
+    tr.win td { background: var(--good-soft); }
+    td input { width: 84px; font: 13px var(--mono); padding: 4px 6px; border: 1px solid var(--line); border-radius: 4px; background: var(--bg); color: var(--fg); }
+    .pill { font-size: 12px; padding: 1px 7px; border-radius: 999px; background: var(--soft); border: 1px solid var(--line); white-space: nowrap; }
+    .pill.rep { background: var(--good-soft); color: var(--good); border-color: var(--good); }
+    .grp { border-top: 1px solid var(--line); padding: 10px 0; display: flex; flex-direction: column; gap: 6px; }
+    .grp:first-of-type { border-top: 0; padding-top: 0; }
+    .chips { display: flex; flex-wrap: wrap; gap: 6px; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <h1>Front Row Upgrade Queue</h1>
+      <p class="muted">Time and mode are sent to <span class="mono">GET /api/queue</span>, so the same input and time always give the same winner.</p>
+    </header>
+
+    <section id="controls">
+      <div class="bar">
+        <div class="field">
+          <span class="lbl">Current time (now)</span>
+          <span class="clock" id="clock"></span>
+          <span class="muted" id="countdown"></span>
+        </div>
+        <div class="field">
+          <span class="lbl">Move time forward</span>
+          <div class="btns">
+            <button type="button" data-minutes="5">+5 min</button>
+            <button type="button" data-minutes="15">+15 min</button>
+            <button type="button" data-minutes="60">+1 hour</button>
+            <button type="button" id="reset">Reset</button>
+          </div>
+        </div>
+        <div class="field">
+          <label class="lbl" for="mode">Mode</label>
+          <select id="mode">
+            <option value="normal">Normal</option>
+            <option value="rush">Rush Hour</option>
+            <option value="vip">VIP Hour</option>
+            <option value="fair">Fair Queue Mode</option>
+          </select>
+        </div>
+      </div>
+      <p class="muted" id="modehint" style="margin-top: 10px"></p>
+    </section>
+
+    <div id="error"></div>
+
+    <section><h2>Current winner</h2><div id="winner"></div></section>
+
+    <section>
+      <h2>Top 3 candidates</h2>
+      <div class="tw"><table>
+        <thead><tr><th>#</th><th>Fan</th><th>Fan group</th><th>Score</th></tr></thead>
+        <tbody id="top3"></tbody>
+      </table></div>
+    </section>
+
+    <section>
+      <h2>Fan groups</h2>
+      <p class="muted" id="groupSummary" style="margin-bottom: 8px"></p>
+      <div id="groups"></div>
+    </section>
+
+    <section>
+      <h2>Excluded entries</h2>
+      <div class="tw"><table>
+        <thead><tr><th>Entry</th><th>Fan</th><th>Reason</th></tr></thead>
+        <tbody id="excluded"></tbody>
+      </table></div>
+    </section>
+
+    <section>
+      <h2>All entries (edit loyalty points)</h2>
+      <div class="tw"><table>
+        <thead><tr><th>Entry</th><th>Fan</th><th>Status</th><th>Loyalty points</th><th>Upgrades 30d</th><th>Ticket value</th><th>Result</th></tr></thead>
+        <tbody id="entries"></tbody>
+      </table></div>
+    </section>
+  </div>
+
+  <script type="module" src="/app.js"></script>
+</body>
+</html>
